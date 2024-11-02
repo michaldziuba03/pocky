@@ -23,3 +23,7 @@ go.work.sum
 
 # env file
 .env
+
+# C related files:
+*.o
+*.a
