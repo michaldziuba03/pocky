@@ -2,7 +2,7 @@
 
 build:
 	@mkdir -p build
-	go build -o build/pocky main.go
+	go build -o build/pocky
 
 clean:
 	@rm -rf build

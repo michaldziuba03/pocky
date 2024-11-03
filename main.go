@@ -20,9 +20,22 @@ func container() {
 	fmt.Printf("Running [%s] as PID %d\n", os.Args[2], pid)
 	fmt.Printf("Container UID: %s\n\n", suid)
 
-	err := syscall.Sethostname([]byte(suid))
+	chrootDest := dest + "/alpine"
+	err := syscall.Chroot(chrootDest)
 	if err != nil {
-		fmt.Printf("Error setting hostname: %s\n", err)
+		fmt.Printf("error: %s\n", err)
+		os.Exit(1)
+	}
+
+	err = syscall.Chdir("/")
+	if err != nil {
+		fmt.Printf("error: %s\n", err)
+		os.Exit(1)
+	}
+
+	err = syscall.Sethostname([]byte(suid))
+	if err != nil {
+		fmt.Printf("error: %s\n", err)
 		os.Exit(1)
 	}
 
@@ -32,6 +45,11 @@ func container() {
 		os.Exit(1)
 	}
 
+	//  PS1="\u@\h:\w$ "
+	err = os.Setenv("PS1", "\\u@\\h:\\w$ ")
+	if err != nil {
+		return
+	}
 	cmd := exec.Command(os.Args[2])
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
@@ -69,6 +87,8 @@ func main() {
 			status := cmd.ProcessState.ExitCode()
 			os.Exit(status)
 		}
+	case "download":
+		Download()
 	case "child":
 		container()
 	default:
