@@ -2,19 +2,33 @@ package main
 
 import (
 	"fmt"
+	"github.com/google/uuid"
 	"os"
 	"os/exec"
 	"syscall"
 )
 
 func container() {
-	fmt.Printf("Running [%s] as PID %d\n", os.Args[2], os.Getpid())
+	uid := uuid.New().String()
+	pid := os.Getpid()
+	if pid != 1 {
+		panic("Cannot run container outside isolated namespace")
+	}
 
-	if err := syscall.Mount("proc", "/proc", "proc", 0, ""); err != nil {
-		fmt.Println("Error mounting /proc:", err)
+	fmt.Printf("Running [%s] as PID %d\n", os.Args[2], pid)
+	fmt.Printf("Container id UID: %s\n\n", uid[:8])
+
+	err := syscall.Sethostname([]byte(uid[:8]))
+	if err != nil {
+		fmt.Printf("Error setting hostname: %s\n", err)
 		os.Exit(1)
 	}
-	defer syscall.Unmount("/proc", 0)
+
+	err = syscall.Mount("proc", "/proc", "proc", 0, "")
+	if err != nil {
+		fmt.Printf("Error mounting proc: %s\n", err)
+		os.Exit(1)
+	}
 
 	cmd := exec.Command(os.Args[2])
 	cmd.Stdin = os.Stdin
@@ -23,13 +37,18 @@ func container() {
 
 	if err := cmd.Run(); err != nil {
 		fmt.Println("Error:", err)
-		os.Exit(1)
+		status := cmd.ProcessState.ExitCode()
+		os.Exit(status)
+	}
+
+	err = syscall.Unmount("/proc", 0)
+	if err != nil {
 	}
 }
 
 func main() {
 	if len(os.Args) < 3 {
-		fmt.Println("Usage: go run container.go run <command>")
+		fmt.Println("Usage: pocky run <command>")
 		os.Exit(1)
 	}
 
@@ -40,12 +59,14 @@ func main() {
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 		cmd.SysProcAttr = &syscall.SysProcAttr{
-			Cloneflags: syscall.CLONE_NEWUTS | syscall.CLONE_NEWPID | syscall.CLONE_NEWNS | syscall.CLONE_NEWIPC, // Nowa przestrzeń mount
+			Cloneflags:   syscall.CLONE_NEWUTS | syscall.CLONE_NEWPID | syscall.CLONE_NEWNS | syscall.CLONE_NEWIPC,
+			Unshareflags: syscall.CLONE_NEWNS,
 		}
 
 		if err := cmd.Run(); err != nil {
 			fmt.Println("Error:", err)
-			os.Exit(1)
+			status := cmd.ProcessState.ExitCode()
+			os.Exit(status)
 		}
 	case "child":
 		container()
