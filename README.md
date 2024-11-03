@@ -1,11 +1,17 @@
-# pocker
-top secret
+# pocky
 
-```sh
-go build main.go
+Containers experiment.
 
-sudo ./main run /bin/sh
+## Build
 
-# after use:
-sudo mount -t proc proc /proc
+You can use `make` utility to build project
+
+```shell
+make
+cd build
+sudo ./pocky run /bin/bash
 ```
+
+## License
+
+Distributed under the MIT License. See `LICENSE` for more information.

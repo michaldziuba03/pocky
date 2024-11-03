@@ -10,15 +10,17 @@ import (
 
 func container() {
 	uid := uuid.New().String()
+	suid := uid[:8] // short id
 	pid := os.Getpid()
 	if pid != 1 {
-		panic("Cannot run container outside isolated namespace")
+		fmt.Printf("error: Cannot run container outside isolated namespace\n")
+		os.Exit(1)
 	}
 
 	fmt.Printf("Running [%s] as PID %d\n", os.Args[2], pid)
-	fmt.Printf("Container id UID: %s\n\n", uid[:8])
+	fmt.Printf("Container UID: %s\n\n", suid)
 
-	err := syscall.Sethostname([]byte(uid[:8]))
+	err := syscall.Sethostname([]byte(suid))
 	if err != nil {
 		fmt.Printf("Error setting hostname: %s\n", err)
 		os.Exit(1)
@@ -26,7 +28,7 @@ func container() {
 
 	err = syscall.Mount("proc", "/proc", "proc", 0, "")
 	if err != nil {
-		fmt.Printf("Error mounting proc: %s\n", err)
+		fmt.Printf("error: %s\n", err)
 		os.Exit(1)
 	}
 
@@ -36,13 +38,13 @@ func container() {
 	cmd.Stderr = os.Stderr
 
 	if err := cmd.Run(); err != nil {
-		fmt.Println("Error:", err)
 		status := cmd.ProcessState.ExitCode()
 		os.Exit(status)
 	}
 
 	err = syscall.Unmount("/proc", 0)
 	if err != nil {
+		fmt.Printf("error: %s\n", err)
 	}
 }
 
@@ -64,14 +66,13 @@ func main() {
 		}
 
 		if err := cmd.Run(); err != nil {
-			fmt.Println("Error:", err)
 			status := cmd.ProcessState.ExitCode()
 			os.Exit(status)
 		}
 	case "child":
 		container()
 	default:
-		fmt.Println("Unknown command:", os.Args[1])
+		fmt.Println("error: Unknown command", os.Args[1])
 		os.Exit(1)
 	}
 }
