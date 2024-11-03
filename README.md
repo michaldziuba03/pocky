@@ -1,6 +1,12 @@
+> ⚠️ Experimental project, idk if I will develop it seriously.
+
 # pocky
 
-Containers experiment.
+Pocky - lightweight containers ⚓
+
+![image](https://github.com/user-attachments/assets/b5bfbd27-0d1c-4031-95d8-f31c40f9f65c)
+
+> Basic container with alpine.
 
 ## Build
 
