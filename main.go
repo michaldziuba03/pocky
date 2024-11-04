@@ -21,7 +21,22 @@ func container() {
 	fmt.Printf("Container UID: %s\n\n", suid)
 
 	chrootDest := dest + "/alpine"
-	err := syscall.Chroot(chrootDest)
+	oldRoot := chrootDest + "/old"
+
+	err := os.MkdirAll(oldRoot, 0700)
+	if err != nil {
+		fmt.Printf("error(mkdir): %s\n", err)
+		os.Exit(1)
+	}
+
+	err = syscall.Mount(chrootDest, chrootDest, "", syscall.MS_BIND|syscall.MS_REC, "")
+	if err != nil {
+		fmt.Printf("error: %s\n", err)
+		os.Exit(1)
+	}
+
+	// alternative to syscall.Chroot(chrooDest)
+	err = syscall.PivotRoot(chrootDest, oldRoot)
 	if err != nil {
 		fmt.Printf("error: %s\n", err)
 		os.Exit(1)
@@ -33,23 +48,23 @@ func container() {
 		os.Exit(1)
 	}
 
-	err = syscall.Sethostname([]byte(suid))
-	if err != nil {
-		fmt.Printf("error: %s\n", err)
-		os.Exit(1)
-	}
-
 	err = syscall.Mount("proc", "/proc", "proc", 0, "")
 	if err != nil {
 		fmt.Printf("error: %s\n", err)
 		os.Exit(1)
 	}
 
-	//  PS1="\u@\h:\w$ "
+	err = syscall.Sethostname([]byte(suid))
+	if err != nil {
+		fmt.Printf("error: %s\n", err)
+		os.Exit(1)
+	}
+
 	err = os.Setenv("PS1", "\\u@\\h:\\w$ ")
 	if err != nil {
 		return
 	}
+
 	cmd := exec.Command(os.Args[2])
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
@@ -61,6 +76,15 @@ func container() {
 	}
 
 	err = syscall.Unmount("/proc", 0)
+	if err != nil {
+		fmt.Printf("error: %s\n", err)
+	}
+
+	err = syscall.Unmount("/old_root", syscall.MNT_DETACH)
+	if err != nil {
+		fmt.Printf("error: %s\n", err)
+	}
+	err = os.Remove("/old_root")
 	if err != nil {
 		fmt.Printf("error: %s\n", err)
 	}
