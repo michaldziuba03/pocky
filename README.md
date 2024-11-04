@@ -4,13 +4,16 @@
 
 Pocky - lightweight containers ⚓
 
-![image](https://github.com/user-attachments/assets/b5bfbd27-0d1c-4031-95d8-f31c40f9f65c)
+![image](https://github.com/user-attachments/assets/8ec1e6ab-2e64-4a81-9a85-7603a3288dfd)
 
-> Basic container with alpine.
+
+> Basic container with Alpine Linux (I use Ubuntu WSL as host btw).
 
 ## Build
 
 You can use `make` utility to build project
+
+First run may require configuring `resolve.conf`. Currently it shares all networking with host (works like `host` parameter in Docker)
 
 ```shell
 make
