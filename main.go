@@ -20,6 +20,8 @@ func container() {
 	fmt.Printf("Running [%s] as PID %d\n", os.Args[2], pid)
 	fmt.Printf("Container UID: %s\n\n", suid)
 
+	// TODO: for some reason memory limits do not apply
+	//SetCgroups(uid)
 	chrootDest := dest + "/alpine"
 	oldRoot := chrootDest + "/old"
 
@@ -80,11 +82,11 @@ func container() {
 		fmt.Printf("error: %s\n", err)
 	}
 
-	err = syscall.Unmount("/old_root", syscall.MNT_DETACH)
+	err = syscall.Unmount("/old", syscall.MNT_DETACH)
 	if err != nil {
 		fmt.Printf("error: %s\n", err)
 	}
-	err = os.Remove("/old_root")
+	err = os.Remove("/old")
 	if err != nil {
 		fmt.Printf("error: %s\n", err)
 	}
