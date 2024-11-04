@@ -2,12 +2,20 @@
 
 # pocky
 
-Pocky - lightweight containers ⚓
+Pocky - lightweight, pocket containers ⚓
 
 ![image](https://github.com/user-attachments/assets/8ec1e6ab-2e64-4a81-9a85-7603a3288dfd)
 
 
 > Basic container with Alpine Linux (I use Ubuntu WSL as host btw).
+
+## TODO:
+
+- [x] Ability to run container (process with specific **namespace** flags)
+- [x] Download Alpine Linux rootfs and chroot to it (currently acts like **"image"**).
+- [ ] Configurable limitations (via **cgroups**)
+- [ ] Experiment with `pivot_root` over `chroot` as more secure alternative (or make it configurable) 
+- [ ] Real CLI interface and maybe REST API
 
 ## Build
 
