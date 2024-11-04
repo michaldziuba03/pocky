@@ -21,6 +21,8 @@ Pocky - lightweight, pocket containers ⚓
 
 ## Build
 
+> Project relies on **Linux-specific** technology and syscalls.
+
 You can use `make` utility to build project
 
 First run may require configuring `resolve.conf`. Currently it shares all networking with host (works like `host` parameter in Docker)
