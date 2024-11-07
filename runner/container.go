@@ -15,39 +15,6 @@ type Container struct {
 	limits CGroup
 }
 
-type Device struct {
-	Path  string
-	Type  uint32
-	Perm  uint32
-	Major uint32
-	Minor uint32
-}
-
-// allowed devices inside root fs
-var defaultDevices = [...]*Device{
-	{
-		Path:  "/dev/null",
-		Type:  syscall.S_IFCHR,
-		Perm:  0666,
-		Major: 1,
-		Minor: 3,
-	},
-	{
-		Path:  "/dev/random",
-		Type:  syscall.S_IFCHR,
-		Perm:  0666,
-		Major: 1,
-		Minor: 8,
-	},
-	{
-		Path:  "/dev/urandom",
-		Type:  syscall.S_IFCHR,
-		Perm:  0666,
-		Major: 1,
-		Minor: 9,
-	},
-}
-
 func NewContainer() *Container {
 	id := uuid.New().String()
 	sid := id[:8] // for display only
@@ -136,22 +103,9 @@ func (c *Container) mountProc() {
 	}
 }
 
-// make it similar to terminal command: "mknod -m 666 /dev/urandom c 1 9"
-func mknod(perm uint32, path string, devType uint32, major uint32, minor uint32) error {
-	if _, err := os.Stat(path); err == nil {
-		return nil
-	} else if !os.IsNotExist(err) {
-		return err
-	}
-
-	mode := perm | devType
-	dev := minor | (major << 8)
-	return syscall.Mknod(path, mode, int(dev))
-}
-
 func (c *Container) initDevices() {
 	for _, device := range defaultDevices {
-		err := mknod(device.Perm, device.Path, device.Type, device.Major, device.Minor)
+		err := device.Mknod()
 		if err != nil {
 			log.Println("error: ", err)
 		}
