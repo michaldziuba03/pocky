@@ -1,40 +1,61 @@
 package main
 
 import (
+	"log"
 	"os"
 	"path/filepath"
 	"strconv"
 )
 
-func SetCgroups(uid string) {
-	const path = "/sys/fs/cgroup"
-	memory := filepath.Join(path, "memory")
-	cgroupMem := filepath.Join(memory, uid)
+const CGroupPath = "/sys/fs/cgroup/pocky"
+const CGroupMemory = "memory"
+const CGroupCpu = "cpu"
+const CGroupPids = "pids"
 
-	if os.MkdirAll(cgroupMem, 0755) != nil {
-		panic("Failed to create cgroup memory")
+type CGroup struct {
+	MemoryLimit  int64
+	CpuLimit     int64
+	ProcessLimit int64
+	container    *Container
+}
+
+func (cg *CGroup) InitCGroup(container *Container) {
+	cg.container = container
+	cg.CpuLimit = -1
+	cg.ProcessLimit = -1
+	cg.MemoryLimit = -1
+
+	err := os.MkdirAll(CGroupPath, 0755)
+	if err != nil {
+		log.Fatal("error: ", err)
+	}
+}
+
+func (cg *CGroup) pathTo(cgroupName string) string {
+	return filepath.Join(CGroupPath, cgroupName, cg.container.ID)
+}
+
+func (cg *CGroup) setCGroup(cgroupName string, param string, value string) {
+	path := cg.pathTo(cgroupName)
+	err := os.MkdirAll(path, 0755)
+	if err != nil {
+		log.Fatal("error: ", err)
 	}
 
-	bytesLimit := filepath.Join(cgroupMem, "memory.limit_in_bytes")
-	limit := 104857600 // set 100 MB limit
-
-	if os.WriteFile(bytesLimit, []byte(strconv.Itoa(limit)), 0644) != nil {
-		panic("Failed set memory limit in cgroup")
+	filename := cgroupName + "." + param
+	file := filepath.Join(path, filename)
+	err = os.WriteFile(file, []byte(value), 0644)
+	if err != nil {
+		log.Fatal("error: ", err)
 	}
+}
 
-	oomControl := filepath.Join(cgroupMem, "memory.oom_control")
-	if os.WriteFile(oomControl, []byte("1"), 0644) != nil {
-		panic("Failed set memory oom control in cgroup")
-	}
-
-	onRelease := filepath.Join(cgroupMem, "notify_on_release")
-	if os.WriteFile(onRelease, []byte("1"), 0644) != nil {
-		panic("Failed set notify_on_release in memory cgroup")
-	}
-
+func (cg *CGroup) addPID(cgroupName string) {
+	path := cg.pathTo(cgroupName)
 	pid := os.Getpid()
-	cgroupProcs := filepath.Join(cgroupMem, "cgroup.procs")
-	if os.WriteFile(cgroupProcs, []byte(strconv.Itoa(pid)), 0644) != nil {
-		panic("Failed set memory limit in cgroup")
+	procs := filepath.Join(path, "cgroup.procs")
+	err := os.WriteFile(procs, []byte(strconv.Itoa(pid)), 0644)
+	if err != nil {
+		log.Fatal("error: ", err)
 	}
 }
