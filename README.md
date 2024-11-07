@@ -1,4 +1,4 @@
-> ⚠️ Experimental project, idk if I will develop it seriously.
+> ⚠️ Experimental project.
 
 # pocky
 
@@ -18,6 +18,7 @@ Pocky - lightweight, pocket containers ⚓
 - [ ] Implement something what acts as actual, configurable images
 - [ ] More networking separation options, bridge etc
 - [ ] Real CLI interface and maybe REST API
+- [x] Init default devices like `/dev/urandom`, `/dev/null`
 
 ## Build
 
