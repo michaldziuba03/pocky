@@ -31,6 +31,16 @@ func (cg *CGroup) InitCGroup(container *Container) {
 	}
 }
 
+func (cg *CGroup) SetMemoryLimit(limit int64) {
+	cg.MemoryLimit = limit
+	cg.setCGroup(CGroupMemory, "limit_in_bytes", strconv.FormatInt(limit, 10))
+}
+
+func (cg *CGroup) SetProcessLimit(limit int64) {
+	cg.ProcessLimit = limit
+	cg.setCGroup(CGroupPids, "max", strconv.FormatInt(limit, 10))
+}
+
 func (cg *CGroup) pathTo(cgroupName string) string {
 	return filepath.Join(CGroupPath, cgroupName, cg.container.ID)
 }
