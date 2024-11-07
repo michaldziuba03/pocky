@@ -75,13 +75,13 @@ func (c *Container) setRootFS() {
 		log.Fatal("error: ", err)
 	}
 
-	// alternative to syscall.Chroot(chrooDest)
+	// alternative to syscall.Chroot(chrootDest)
 	err = syscall.PivotRoot(chrootDest, oldRoot)
 	if err != nil {
 		log.Fatal("error: ", err)
 	}
 
-	err = syscall.Chdir("/")
+	err = syscall.Chdir(c.config.WorkDir)
 	if err != nil {
 		log.Fatal("error: ", err)
 	}

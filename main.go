@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -17,9 +18,21 @@ func run() {
 		os.Exit(0)
 	}
 
+	flagSet := flag.NewFlagSet("run", flag.ExitOnError)
+	memoryLimit := flagSet.Int64("memory_limit", -1, "Set memory limit inside container")
+	maxPids := flagSet.Int("max_pids", -1, "Set max pids inside container")
+
+	perr := flagSet.Parse(os.Args[2:])
+	if perr != nil {
+		log.Fatal("error: ", perr)
+	}
+
 	pid := os.Getpid()
-	command := os.Args[2:]
+	command := flagSet.Args()
 	config := runner.NewConfig(pid, command)
+	config.Limits.MemoryLimit = *memoryLimit
+	config.Limits.MaxPids = *maxPids
+
 	configJSON, err := json.Marshal(&config)
 	if err != nil {
 		log.Fatal("error:", err)
