@@ -13,9 +13,10 @@ type Container struct {
 	ID     string
 	SID    string
 	limits CGroup
+	config *Config
 }
 
-func NewContainer() *Container {
+func NewContainer(config *Config) *Container {
 	id := uuid.New().String()
 	sid := id[:8] // for display only
 
@@ -23,6 +24,7 @@ func NewContainer() *Container {
 		ID:     id,
 		SID:    sid,
 		limits: CGroup{},
+		config: config,
 	}
 
 	container.limits.InitCGroup(container)
@@ -42,8 +44,8 @@ func (c *Container) Run() {
 	c.mountProc()
 	c.initDevices()
 
-	// TODO: pass config, maybe by some JSON in FS...
-	cmd := exec.Command(os.Args[2])
+	config := c.config
+	cmd := exec.Command(config.Command[0], config.Command[1:]...)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -104,12 +106,7 @@ func (c *Container) mountProc() {
 }
 
 func (c *Container) initDevices() {
-	for _, device := range defaultDevices {
-		err := device.Mknod()
-		if err != nil {
-			log.Println("error: ", err)
-		}
-	}
+	InitDevices(DefaultDevices[:])
 }
 
 func (c *Container) unmountProc() {

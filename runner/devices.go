@@ -1,6 +1,7 @@
 package runner
 
 import (
+	"log"
 	"os"
 	"syscall"
 )
@@ -25,8 +26,17 @@ func (d *Device) Mknod() error {
 	return syscall.Mknod(d.Path, mode, int(dev))
 }
 
-// allowed devices inside root fs
-var defaultDevices = [...]*Device{
+func InitDevices(devices []*Device) {
+	for _, device := range devices {
+		err := device.Mknod()
+		if err != nil {
+			log.Println("error: ", err)
+		}
+	}
+}
+
+// DefaultDevices list of allowed default devices inside root fs
+var DefaultDevices = [...]*Device{
 	{
 		Path:  "/dev/null",
 		Type:  syscall.S_IFCHR,
@@ -72,7 +82,7 @@ var defaultDevices = [...]*Device{
 	{
 		Path:  "/dev/console",
 		Type:  syscall.S_IFCHR,
-		Perm:  0666,
+		Perm:  0620,
 		Major: 5,
 		Minor: 1,
 	},

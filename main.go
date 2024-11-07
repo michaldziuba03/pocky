@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -16,7 +17,17 @@ func run() {
 		os.Exit(0)
 	}
 
-	cmd := exec.Command("/proc/self/exe", append([]string{"container"}, os.Args[2:]...)...)
+	pid := os.Getpid()
+	command := os.Args[2:]
+	config := runner.NewConfig(pid, command)
+	configJSON, err := json.Marshal(&config)
+	if err != nil {
+		log.Fatal("error:", err)
+	}
+
+	var args = [...]string{"container", string(configJSON)}
+
+	cmd := exec.Command("/proc/self/exe", args[:]...)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -32,8 +43,22 @@ func run() {
 	}
 }
 
+/*
+ * "pocky container <json:config>"
+ * NOT PUBLIC for the end user
+ */
 func container() {
-	c := runner.NewContainer()
+	if len(os.Args) != 3 {
+		log.Fatal("error: expected 3 arguments")
+	}
+
+	var config runner.Config
+	err := json.Unmarshal([]byte(os.Args[2]), &config)
+	if err != nil {
+		log.Fatal("error: ", err)
+	}
+
+	c := runner.NewContainer(&config)
 	c.Run()
 }
 
