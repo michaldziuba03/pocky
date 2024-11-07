@@ -8,6 +8,8 @@ import (
 	"syscall"
 )
 
+import "pocker/runner"
+
 func run() {
 	if len(os.Args) < 3 {
 		fmt.Println("usage: pocky run <command>")
@@ -31,8 +33,8 @@ func run() {
 }
 
 func container() {
-	container := NewContainer()
-	container.Run()
+	c := runner.NewContainer()
+	c.Run()
 }
 
 func printHelp() {
