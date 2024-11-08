@@ -39,7 +39,8 @@ func run() {
 	}
 
 	var args = [...]string{"container", string(configJSON)}
-
+	// this way of passing config is not best, because in container user can see all config using ps command
+	// TODO: use files to pass config, generate ID on parent process and pass only that id via command args
 	cmd := exec.Command("/proc/self/exe", args[:]...)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout

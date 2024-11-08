@@ -13,7 +13,8 @@ Pocky - lightweight, pocket containers ⚓
 
 - [x] Ability to run container (process with specific **namespace** flags)
 - [x] Download Alpine Linux rootfs and chroot to it (currently acts like **"image"**).
-- [ ] Configurable limitations (via **cgroups**)
+- [x] Configurable limitations (via **cgroups**)
+- [ ] Support **cgroups** v2 and hybrid.
 - [x] Experiment with `pivot_root` over `chroot` as more secure alternative (or make it configurable)
 - [ ] Implement something what acts as actual, configurable images
 - [ ] More networking separation options, bridge etc

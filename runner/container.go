@@ -12,7 +12,6 @@ import (
 type Container struct {
 	ID     string
 	SID    string
-	limits CGroup
 	config *Config
 }
 
@@ -23,11 +22,9 @@ func NewContainer(config *Config) *Container {
 	container := &Container{
 		ID:     id,
 		SID:    sid,
-		limits: CGroup{},
 		config: config,
 	}
 
-	container.limits.InitCGroup(container)
 	return container
 }
 
@@ -37,6 +34,9 @@ func (c *Container) Run() {
 		log.Fatal("error: cannot run container outside isolated namespace")
 	}
 
+	cgroups := NewCGroups(c)
+	cgroups.SetCGroups(c)
+
 	fmt.Printf("Container ID: %s\n\n", c.SID)
 	c.setHostname()
 	c.setEnvironmentVars()
@@ -44,8 +44,7 @@ func (c *Container) Run() {
 	c.mountProc()
 	c.initDevices()
 
-	config := c.config
-	cmd := exec.Command(config.Command[0], config.Command[1:]...)
+	cmd := exec.Command(c.config.Command[0], c.config.Command[1:]...)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr

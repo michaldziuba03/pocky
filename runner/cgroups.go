@@ -7,65 +7,115 @@ import (
 	"strconv"
 )
 
-const CGroupPath = "/sys/fs/cgroup/pocky"
+const CGroupUnified = "/sys/fs/cgroup/unified"
+const CGroupPath = "/sys/fs/cgroup"
 const CGroupMemory = "memory"
 const CGroupCpu = "cpu"
 const CGroupPids = "pids"
 
-type CGroup struct {
-	MemoryLimit  int64
-	CpuLimit     int64
-	ProcessLimit int64
-	container    *Container
+type PidsCGroup struct {
+	path   string
+	pidSet bool
 }
 
-func (cg *CGroup) InitCGroup(container *Container) {
-	cg.container = container
-	cg.CpuLimit = -1
-	cg.ProcessLimit = -1
-	cg.MemoryLimit = -1
-
-	err := os.MkdirAll(CGroupPath, 0755)
-	if err != nil {
-		log.Fatal("error: ", err)
-	}
-}
-
-func (cg *CGroup) SetMemoryLimit(limit int64) {
-	cg.MemoryLimit = limit
-	cg.setCGroup(CGroupMemory, "limit_in_bytes", strconv.FormatInt(limit, 10))
-}
-
-func (cg *CGroup) SetProcessLimit(limit int64) {
-	cg.ProcessLimit = limit
-	cg.setCGroup(CGroupPids, "max", strconv.FormatInt(limit, 10))
-}
-
-func (cg *CGroup) pathTo(cgroupName string) string {
-	return filepath.Join(CGroupPath, cgroupName, cg.container.ID)
-}
-
-func (cg *CGroup) setCGroup(cgroupName string, param string, value string) {
-	path := cg.pathTo(cgroupName)
+func tryCreateDir(path string) {
 	err := os.MkdirAll(path, 0755)
 	if err != nil {
 		log.Fatal("error: ", err)
 	}
+}
 
-	filename := cgroupName + "." + param
-	file := filepath.Join(path, filename)
-	err = os.WriteFile(file, []byte(value), 0644)
+func (ctrl *PidsCGroup) SetMaxPids(limit int) {
+	tryCreateDir(ctrl.path)
+	str := strconv.Itoa(limit)
+	path := filepath.Join(ctrl.path, "pids.max")
+
+	err := os.WriteFile(path, []byte(str), 0644)
 	if err != nil {
 		log.Fatal("error: ", err)
+	}
+
+	ctrl.TrySetProcs()
+}
+
+func (ctrl *PidsCGroup) TrySetProcs() {
+	if ctrl.pidSet {
+		return
+	}
+
+	str := strconv.Itoa(os.Getpid())
+	path := filepath.Join(ctrl.path, "cgroup.procs")
+	err := os.WriteFile(path, []byte(str), 0644)
+	if err != nil {
+		log.Fatal("error: ", err)
+	}
+
+	ctrl.pidSet = true
+}
+
+type MemoryCGroup struct {
+	path   string
+	pidSet bool
+}
+
+func (ctrl *MemoryCGroup) SetMemoryLimit(limit int64) {
+	tryCreateDir(ctrl.path)
+	str := strconv.FormatInt(limit, 10)
+	path := filepath.Join(ctrl.path, "memory.limit_in_bytes")
+
+	err := os.WriteFile(path, []byte(str), 0644)
+	if err != nil {
+		log.Fatal("error: ", err)
+	}
+
+	ctrl.TrySetProcs()
+}
+
+func (ctrl *MemoryCGroup) TrySetProcs() {
+	if ctrl.pidSet {
+		return
+	}
+
+	str := strconv.Itoa(os.Getpid())
+	path := filepath.Join(ctrl.path, "cgroup.procs")
+	err := os.WriteFile(path, []byte(str), 0644)
+	if err != nil {
+		log.Fatal("error: ", err)
+	}
+
+	ctrl.pidSet = true
+}
+
+type CGroups struct {
+	Pids   PidsCGroup
+	Memory MemoryCGroup
+}
+
+func NewCGroups(c *Container) *CGroups {
+	return &CGroups{
+		Pids: PidsCGroup{
+			path:   CGroupPathV1(CGroupPids, c),
+			pidSet: false,
+		},
+		Memory: MemoryCGroup{
+			path:   CGroupPathV1(CGroupMemory, c),
+			pidSet: false,
+		},
 	}
 }
 
-func (cg *CGroup) addPID(cgroupName string) {
-	path := cg.pathTo(cgroupName)
-	pid := os.Getpid()
-	procs := filepath.Join(path, "cgroup.procs")
-	err := os.WriteFile(procs, []byte(strconv.Itoa(pid)), 0644)
-	if err != nil {
-		log.Fatal("error: ", err)
+func (cg *CGroups) SetCGroups(c *Container) {
+	limits := c.config.Limits
+
+	if limits.MemoryLimit != -1 {
+		cg.Memory.SetMemoryLimit(limits.MemoryLimit)
 	}
+
+	if limits.MaxPids != -1 {
+		cg.Pids.SetMaxPids(limits.MaxPids)
+	}
+}
+
+func CGroupPathV1(controller string, c *Container) string {
+	return filepath.Join(CGroupPath, controller, "pocky", c.ID)
 }
